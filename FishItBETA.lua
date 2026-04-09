@@ -36,15 +36,21 @@ TabInfo:AddInfoBox([[Tips Penggunaan:
 • Jika error, lapor ke Discord resmi kami.]])
 TabInfo:AddDiscordLink("https://discord.gg/5HGPUxrU")
 
--- ==================== REMOTE SYSTEM (CORE) ====================
+-- ==================== ANTI DETECT SECTION (DITAMBAH SESUAI SARAN TEMEN) ====================
 local net = ReplicatedStorage:WaitForChild("Packages", 10):WaitForChild("_Index", 10):WaitForChild("sleitnick_net@0.2.0", 10):WaitForChild("net", 10)
-local allRemotes = net:GetChildren()
 
+local remotes = net:GetChildren()
+local magix = -2
+if #remotes ~= 323 then
+	magix = 0
+end
+
+-- ==================== REMOTE SYSTEM (CORE) ====================
 local function GetServerRemote(targetName)
-	local allRemotes = net:GetChildren()
-	for i, remote in ipairs(allRemotes) do
+	local remotesList = net:GetChildren()
+	for i, remote in ipairs(remotesList) do
 		if remote.Name == targetName then
-			return allRemotes[i + 1]
+			return remotesList[i + magix]   -- pakai magix biar ga ke detect
 		end
 	end
 	return nil
@@ -94,10 +100,10 @@ if #missingRemotes > 0 then
 	return
 end
 
--- ==================== AUTO FISHING (INSTANT) ====================
+-- ==================== AUTO FISHING (SUPER INSTANT) ====================
 local Config = {
 	completeDelay = 0,
-	cycleDelay = 0.001
+	cycleDelay = 0.0005
 }
 
 local Engine = {
@@ -105,7 +111,6 @@ local Engine = {
 	Worker = nil
 }
 
-local function now() return workspace:GetServerTimeNow() end
 local function safeCall(func) pcall(func) end
 
 local function equipRod()
@@ -128,7 +133,7 @@ end
 local function burstCompled(times)
 	for i = 1, times do
 		completeCatch()
-		if i < times then task.wait(0.0005) end
+		if i < times then task.wait(0.0003) end
 	end
 end
 
@@ -136,19 +141,17 @@ local function startEngine()
 	if Engine.Worker then return end
 	Engine.Worker = task.spawn(function()
 		equipRod()
-		task.wait(0.05)
-		local cycle = 0
+		task.wait(0.03)
 		while true do
 			if Engine.Running then
-				cycle = cycle + 1
 				castRod()
 				task.wait(Config.completeDelay)
 				task.spawn(function()
-					burstCompled(3)
+					burstCompled(4)   -- lebih agresif
 				end)
 				task.wait(Config.cycleDelay)
 			else
-				task.wait(0.1)
+				task.wait(0.08)
 			end
 		end
 	end)
@@ -170,7 +173,7 @@ end, "0")
 TabMain:AddInput("Cycle Delay", function(val)
 	local n = tonumber(val)
 	if n and n >= 0 and n <= 1 then Config.cycleDelay = n end
-end, "0.001")
+end, "0.0005")
 
 -- ==================== TELEPORT TAB ====================
 local TabTp = Window:AddTab("Teleport", "")
@@ -189,7 +192,7 @@ local function TeleportExec(targetPos)
 	end
 end
 
--- Player Teleport (dynamic list)
+-- Teleport to Player
 local playerOptions = {}
 for _, plr in ipairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
@@ -197,12 +200,10 @@ for _, plr in ipairs(Players:GetPlayers()) do
 	end
 end
 TabTp:AddDropdown("Teleport to Player", function(selected)
-	if selected and selected.Player then
-		TeleportExec(selected.Player)
-	end
+	if selected and selected.Player then TeleportExec(selected.Player) end
 end, playerOptions)
 
--- Island Teleports
+-- Teleport Pulau
 local TP_POS_LIST = {
 	{Name = "Crater Island", Pos = Vector3.new(1025, 3, 5012)},
 	{Name = "Planetary Observatory", Pos = Vector3.new(343, 4, 2092)},
@@ -219,43 +220,34 @@ local TP_POS_LIST = {
 	{Name = "Treasure Room", Pos = Vector3.new(-3564, -279, -1607)}
 }
 
-local function TeleportToPos(pos)
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
-end
-
 local islandList = {}
 for _, v in pairs(TP_POS_LIST) do
 	table.insert(islandList, {Name = v.Name, Pos = v.Pos})
 end
 
+local function TeleportToPos(pos)
+	local char = LocalPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0)) end
+end
+
 TabTp:AddDropdown("Teleport Pulau", function(selected)
-	if selected and selected.Pos then
-		TeleportToPos(selected.Pos)
-	end
+	if selected and selected.Pos then TeleportToPos(selected.Pos) end
 end, islandList)
 
 -- ==================== CPU OPTIMIZE TAB ====================
 local TabCpu = Window:AddTab("Optimize", "")
 
-local DisableAnim = false
 TabCpu:AddToggle("Disable Animation", function(state)
-	DisableAnim = state
 	local char = LocalPlayer.Character
 	if not char then return end
 	for _, v in pairs(char:GetDescendants()) do
-		if v:IsA("Animator") or v:IsA("AnimationTrack") then
-			v:Destroy()
-		end
+		if v:IsA("Animator") or v:IsA("AnimationTrack") then v:Destroy() end
 	end
 end)
 
-local DisableFX = false
 TabCpu:AddToggle("Disable Effects", function(state)
-	DisableFX = state
 	for _, v in pairs(workspace:GetDescendants()) do
 		if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Explosion") or v:IsA("Fire") or v:IsA("Smoke") then
 			v:Destroy()
@@ -278,9 +270,7 @@ TabCpu:AddToggle("FPS Boost", function(state)
 		Lighting.FogEnd = 1e10
 		Lighting.Brightness = 1
 		for _, v in pairs(Lighting:GetChildren()) do
-			if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") then
-				v:Destroy()
-			end
+			if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") then v:Destroy() end
 		end
 		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 	end
@@ -296,9 +286,7 @@ end)
 
 TabCpu:AddButton("Clean Map (Lag Reduce)", function()
 	for _, v in pairs(workspace:GetDescendants()) do
-		if v:IsA("Accessory") or v:IsA("Hat") then
-			v:Destroy()
-		end
+		if v:IsA("Accessory") or v:IsA("Hat") then v:Destroy() end
 	end
 end)
 
@@ -320,15 +308,12 @@ TabCpu:AddToggle("Hide Other Players", function(state)
 	for _, plr in pairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer and plr.Character then
 			for _, v in pairs(plr.Character:GetDescendants()) do
-				if v:IsA("BasePart") then
-					v.Transparency = state and 1 or 0
-				end
+				if v:IsA("BasePart") then v.Transparency = state and 1 or 0 end
 			end
 		end
 	end
 end)
 
--- Persistent hide for new players
 Players.PlayerAdded:Connect(function(plr)
 	if plr ~= LocalPlayer then
 		plr.CharacterAdded:Connect(function(char)
@@ -353,15 +338,11 @@ TabCpu:AddToggle("Low CPU Mode", function(state)
 	end
 end)
 
-local LimitFPS = false
 TabCpu:AddToggle("Limit FPS (Save CPU)", function(state)
-	LimitFPS = state
 	setfpscap(state and 30 or 0)
 end)
 
-local UltraLow = false
 TabCpu:AddToggle("ULTRA LOW MODE (BRUTAL)", function(state)
-	UltraLow = state
 	if state then
 		for _, v in pairs(workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
@@ -397,9 +378,7 @@ TabCpu:AddToggle("Auto Clean Lag", function(state)
 	task.spawn(function()
 		while CleanMode do
 			for _, v in pairs(workspace:GetDescendants()) do
-				if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
-					v:Destroy()
-				end
+				if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then v:Destroy() end
 			end
 			task.wait(3)
 		end
@@ -419,7 +398,6 @@ end)
 -- ==================== SERVER TAB ====================
 local TabSettings = Window:AddTab("Server", "")
 
--- Anti AFK (fixed & persistent)
 local AntiAFK = false
 LocalPlayer.Idled:Connect(function()
 	if AntiAFK then
@@ -437,9 +415,10 @@ local Freeze = false
 TabSettings:AddToggle("Freeze", function(state)
 	Freeze = state
 	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp then hrp.Anchored = state end
+	if char then
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then hrp.Anchored = state end
+	end
 end)
 
 TabSettings:AddButton("Rejoin Server", function()
